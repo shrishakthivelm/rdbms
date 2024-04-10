@@ -1,0 +1,369 @@
+-------------------------------PROCEDURES-----------------------------------------
+
+CREATE OR REPLACE PROCEDURE greetings
+AS
+BEGIN
+ dbms_output.put_line('Hello World!');
+END;
+/
+EXECUTE greetings;
+
+
+
+
+DROP PROCEDURE greetings;
+
+
+
+DECLARE
+ a number;
+ b number;
+ c number;
+PROCEDURE findMin(x IN number, y IN number, z OUT number) IS
+BEGIN
+ IF x < y THEN
+ z:= x;
+ ELSE
+ z:= y;
+ END IF;
+END;
+
+BEGIN
+ a:= 23;
+ b:= 45;
+ findMin(a, b, c);
+ dbms_output.put_line(' Minimum of (23, 45) : ' || c);
+END;
+/
+
+
+
+
+
+DECLARE
+ a number;
+PROCEDURE squareNum(x IN OUT number) IS
+BEGIN
+ x := x * x;
+END;
+
+BEGIN
+ a:= 23;
+ squareNum(a);
+ dbms_output.put_line(' Square of (23): ' || a);
+END;
+/
+
+
+
+--DECLARE
+--    PROCEDURE compare (value varchar, pattern varchar) is
+--    BEGIN
+--        IF value LIKE pattern THEN
+--            dbms_output.put_line ('True - pattern matches');
+--        ELSE
+--            dbms_output.put_line ('False - pattern does not match');
+--        END IF;
+--    END;
+--
+--BEGIN
+--    compare('Zara Ali', 'Z%A_i');
+--    compare('Nuha Ali', 'Z%A_i');
+--END;
+--/
+
+------------------------pl/sql-------------------------------------------
+
+--DECLARE
+--    SUBTYPE name is char(10);
+--    SUBTYPE message is varchar(50);
+--    salutation name;
+--    greetings message;
+--BEGIN
+--    salutation := 'Reader';
+--    greetings := 'welcome to PL/SQL programming!';
+--    dbms_output.put_line('Hello ' || salutation || greetings);
+--END;
+--/
+
+
+--DECLARE
+--    c_id customers_sample.id%type := &c_id;
+--    c_sal customers_sample.salary%type;
+--BEGIN
+--    select salary into c_sal
+--    from customers_sample
+--    where id = c_id;
+--
+--    if ( c_sal < 2000 ) then
+--        update customers_sample
+--        set salary = salary + 1000 where id=c_id;
+--        dbms_output.put_line('Salary Updated!');
+--    end if;
+--END;
+---------------------------------------FUNCTIONS-----------------------------------------------
+
+
+CREATE OR REPLACE FUNCTION totalCustomers
+RETURN number IS
+ total number(2) := 0;
+BEGIN
+ SELECT count(*) into total
+ FROM customers;
+
+ RETURN total;
+END;
+/
+DECLARE
+ c number(2);
+BEGIN
+ c := totalCustomers();
+ dbms_output.put_line('Total no. of Customers: ' || c);
+END;
+/
+
+
+
+DECLARE
+ a number;
+ b number;
+ c number;
+FUNCTION findMax(x IN number, y IN number)
+RETURN number
+IS
+ z number;
+BEGIN
+ IF x > y THEN
+ z:= x;
+ ELSE
+ Z:= y;
+ END IF;
+ RETURN z;
+END;
+
+BEGIN
+ a:= 23;
+ b:= 45;
+ c := findMax(a, b);
+ dbms_output.put_line(' Maximum of (23,45): ' || c);
+END;
+/
+
+
+
+
+DECLARE
+ num number;
+ factorial number;
+FUNCTION fact(x number)
+RETURN number
+IS
+ f number;
+BEGIN
+ IF x=0 THEN
+ f := 1;
+ ELSE
+ f := x * fact(x-1);
+ END IF;
+RETURN f;
+END;
+
+BEGIN
+ num:= 6;
+ factorial := fact(num);
+ dbms_output.put_line(' Factorial '|| num || ' is ' || factorial);
+END;
+/
+
+
+
+--------------------------------------CURSOR----------------------------------------------
+
+-------IMPLICIT---- 
+
+DECLARE
+ total_rows number(2);
+BEGIN
+ UPDATE customers
+ SET salary = salary + 500;
+ IF sql%notfound THEN
+ dbms_output.put_line('no customers selected');
+ ELSIF sql%found THEN
+ total_rows := sql%rowcount;
+ dbms_output.put_line( total_rows || ' customers selected ');
+ END IF;
+END;
+/
+
+------- EXPLICIT------
+
+DECLARE
+ c_id customers.id%type;
+ c_name customerS.No.ame%type;
+ c_addr customers.address%type;
+ CURSOR c_customers is
+ SELECT id, name, address FROM customers;
+BEGIN
+ OPEN c_customers;
+ LOOP
+  FETCH c_customers into c_id, c_name, c_addr;
+ EXIT WHEN c_customers%notfound;
+ dbms_output.put_line(c_id || ' ' || c_name || ' ' || c_addr);
+ END LOOP;
+ CLOSE c_customers;
+END;
+/
+
+----------------------------------------------------------EXCEPTION------------------------------
+
+DECLARE
+ c_id customers.id%type := 8;
+  c_name customerS.No.ame%type;
+ c_addr customers.address%type;
+BEGIN
+ SELECT name, address INTO c_name, c_addr
+ FROM customers
+ WHERE id = c_id;
+ DBMS_OUTPUT.PUT_LINE ('Name: '|| c_name);
+ DBMS_OUTPUT.PUT_LINE ('Address: ' || c_addr);
+EXCEPTION
+ WHEN no_data_found THEN
+ dbms_output.put_line('No such customer!');
+ WHEN others THEN
+ dbms_output.put_line('Error!');
+END;
+/
+
+----RAISE----
+
+DECLARE
+ exception_name EXCEPTION;
+BEGIN
+ IF condition THEN
+ RAISE exception_name;
+ END IF;
+EXCEPTION
+ WHEN exception_name THEN
+ statement;
+END;
+
+
+
+DECLARE
+ c_id customers.id%type := &cc_id;
+ c_name customerS.No.ame%type;
+ c_addr customers.address%type;
+ -- user defined exception
+ ex_invalid_id EXCEPTION;
+BEGIN
+ IF c_id <= 0 THEN
+ RAISE ex_invalid_id;
+ ELSE
+ SELECT name, address INTO c_name, c_addr
+ FROM customers
+ WHERE id = c_id;
+ DBMS_OUTPUT.PUT_LINE ('Name: '|| c_name);
+ DBMS_OUTPUT.PUT_LINE ('Address: ' || c_addr);
+ END IF;
+EXCEPTION
+ WHEN ex_invalid_id THEN
+ dbms_output.put_line('ID must be greater than zero!');
+ WHEN no_data_found THEN
+ dbms_output.put_line('No such customer!');
+ WHEN others THEN
+ dbms_output.put_line('Error!');
+END;
+/
+
+---------------------------------------------TRIGGERS----------------------------------------------------------------
+
+CREATE OR REPLACE TRIGGER display_salary_changes
+BEFORE DELETE OR INSERT OR UPDATE ON customers
+FOR EACH ROW
+WHEN (NEW.ID > 0)
+DECLARE
+ sal_diff number;
+BEGIN
+ sal_diff := :NEW.salary - :OLD.salary;
+ dbms_output.put_line('Old salary: ' || :OLD.salary);
+ dbms_output.put_line('New salary: ' || :NEW.salary);
+ dbms_output.put_line('Salary difference: ' || sal_diff);
+END;
+/
+
+INSERT INTO CUSTOMERS (ID,NAME,AGE,ADDRESS,SALARY)
+VALUES (7, 'Kriti', 22, 'HP', 7500.00 )
+
+UPDATE customers
+SET salary = salary + 500
+WHERE id = 2;
+
+
+----------------------------------------------PACKAGE---------------------------------------------
+
+CREATE PACKAGE cust_sal AS
+ PROCEDURE find_sal(c_id customers.id%type);
+END cust_sal;
+/
+
+CREATE OR REPLACE PACKAGE BODY cust_sal AS
+ PROCEDURE find_sal(c_id customers.id%TYPE) IS
+ c_sal customers.salary%TYPE;
+ BEGIN
+ SELECT salary INTO c_sal
+ FROM customers
+ WHERE id = c_id;
+ dbms_output.put_line('Salary: '|| c_sal);
+ END find_sal;
+END cust_sal;
+/
+
+DECLARE
+ code customers.id%type := &cc_id;
+BEGIN
+ cust_sal.find_sal(code);
+END;
+/
+
+-------------------------------------CREATE---TABLE-----------------------------------------------------
+
+create table employee(
+employee_id NUMBER not null,
+fname VARCHAR2(20),
+lname VARCHAR2(20),
+salary NUMBER(12,2),
+jdate VARCHAR2(40),
+depart varchar(20),
+gender VARCHAR2(10),
+PRIMARY KEY(employee_id)
+);
+INSERT ALL
+    INTO employee VALUES (2, 'Nikita', 'Jain', 530000, '2014-01-09 17:31:07.793', 'HR', 'F')
+    INTO employee VALUES (3, 'Ashish', 'Kumar', 1000000, '2014-01-09 10:05:07.793', 'IT', 'Male')
+    INTO employee VALUES (4, 'Nikhil' ,'Sharma', 480000, '2014-01-09 08:00:07.793', 'HR', 'Male')
+    INTO employee VALUES (5, 'Anish', 'Kadian', 500000, '2014-01-09 09:31:07.793', 'Payroll', 'Male')
+    SELECT 1 FROM DUAL;
+
+CREATE table projdetail(
+proj_id NUMERIC not null,
+employee_id NUMERIC not null,
+proj_name VARCHAR2(20),
+PRIMARY KEY(proj_id),
+FOREIGN KEY(employee_id)REFERENCES employee(employee_id)
+);
+
+INSERT ALL
+into projdetail VALUES (1,1,'Task Track')
+into projdetail VALUES (2,1,'CLP')
+into projdetail VALUES(3,1,'Survey Management')
+into projdetail VALUES(4,2,'Hr management')
+into projdetail VALUES(5,3,'Task Track')
+into projdetail VALUES(6,3,'GRS')
+into projdetail VALUES(7,3,'DDS')
+into projdetail VALUES(8,4,'Hr management')
+SELECT 1 FROM dual;
+
+SELECT * FROM employee,projdetail
+WHERE employee.employee_id = projdetail.employee_id;
+
+-------------------------------------------------------------------
